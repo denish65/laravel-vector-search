@@ -1,0 +1,143 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Category;
+use App\Models\CategoryEmbedding;
+use Illuminate\Support\Facades\Http;
+
+class SearchController extends Controller
+{
+
+    public function index(Request $request)
+    {
+        $query = $request->input('query');
+        $result = null;
+        $score =null;
+
+        if ($query) {
+
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env("COHERE_KEY"),
+                'Content-Type' => 'application/json',
+            ])
+            ->retry(3, 10000)
+            ->post('https://api.cohere.ai/v1/embed', [
+                'texts' => [$query],
+                'model' => 'embed-english-v3.0',
+                'input_type' => 'search_document', // or 'search_query' depending on usage
+            ]);
+
+    
+
+            $queryVector = $response['embeddings'][0];
+
+            // Step 2: Compare with saved category embeddings
+            $bestScore = -1;
+            $bestCategory = null;
+
+            $embeddings = CategoryEmbedding::with('category')->get();
+
+            foreach ($embeddings as $embedding) {
+                $score = $this->cosineSimilarity($queryVector, $embedding->embedding);
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestCategory = $embedding->category;
+                }
+            }
+
+            // Step 3: If score is good, return match
+            if ($bestScore > 0.75 && $bestCategory) {
+                $result = $bestCategory;
+
+                // ✅ Step 4: Re-generate & update the embedding of the matched category
+                $this->updateCategoryEmbedding($bestCategory);
+            }
+
+            // 3. If score is good, return match
+            $result = $bestScore > 0.75 ? $bestCategory : null;
+            $score = $bestScore;
+        }
+
+        return view('search', compact('query', 'result','score'));
+    }
+
+    private function cosineSimilarity(array $vec1, array $vec2)
+    {
+        $dot = 0.0;
+        $normA = 0.0;
+        $normB = 0.0;
+
+        for ($i = 0; $i < count($vec1); $i++) {
+            $dot += $vec1[$i] * $vec2[$i];
+            $normA += $vec1[$i] ** 2;
+            $normB += $vec2[$i] ** 2;
+        }
+
+        return $dot / (sqrt($normA) * sqrt($normB));
+    }
+
+    /*private function updateCategoryEmbedding($category)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env("COHERE_KEY"),
+            'Content-Type' => 'application/json',
+        ])
+        ->post('https://api.cohere.ai/v1/embed', [
+            'texts' => [$category->name],
+            'model' => 'embed-english-v3.0',
+            'input_type' => 'search_document',
+        ]);
+
+        if ($response->successful()) {
+            $embedding = $response['embeddings'][0];
+
+            // Update the category embedding in the DB
+            \App\Models\CategoryEmbedding::updateOrCreate(
+                ['category_id' => $category->id],
+                ['embedding' => $embedding]
+            );
+        }
+    }*/
+    private function updateCategoryEmbedding($category)
+    {
+        // 👇 Create combined string: Main + Subcategories + Keywords + Services
+        $fullText = $category->name;
+
+        if ($category->subcategories) {
+            $fullText .= ' ' . $category->subcategories; // assuming comma-separated
+        }
+
+        if ($category->keywords) {
+            $fullText .= ' ' . $category->keywords;
+        }
+
+        if ($category->services) {
+            $fullText .= ' ' . $category->services;
+        }
+
+        // Get new embedding
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env("COHERE_KEY"),
+            'Content-Type' => 'application/json',
+        ])
+        ->post('https://api.cohere.ai/v1/embed', [
+            'texts' => [$fullText],
+            'model' => 'embed-english-v3.0',
+            'input_type' => 'search_document',
+        ]);
+
+        if ($response->successful()) {
+            $embedding = $response['embeddings'][0];
+
+            CategoryEmbedding::updateOrCreate(
+                ['category_id' => $category->id],
+                ['embedding' => $embedding]
+            );
+        }
+    }
+
+}

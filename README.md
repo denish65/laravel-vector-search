@@ -15,7 +15,7 @@ php artisan key:generate
 
 php artisan migrate
 
-add your cohere ai COHERE_KEY key to env like this "COHERE_KEY=YOUr_COHERE_KEY"
+add your cohere ai COHERE_KEY key to env like this "COHERE_KEY=YOUR_COHERE_KEY"
 
 php artisan import:categories
 

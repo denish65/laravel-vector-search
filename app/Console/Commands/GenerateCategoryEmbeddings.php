@@ -65,12 +65,12 @@ class GenerateCategoryEmbeddings extends Command
                     ['embedding' => $embedding]
                 );
 
-                $this->info("✓ Embedded category: {$category->name}");
+                $this->info("Embedded category: {$category->name}");
             } else {
-                $this->error("✗ Failed for category: {$category->name}");
+                $this->error("Failed for category: {$category->name}");
             }
         }
 
-        $this->info("✅ Embeddings generated successfully.");
+        $this->info("Embeddings generated successfully.");
     }
 }

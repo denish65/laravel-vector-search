@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('category_embeddings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->json('embedding'); // store vector here
+            $table->json('embedding'); 
             $table->timestamps();
         });
     }

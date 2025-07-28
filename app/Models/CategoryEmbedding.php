@@ -12,6 +12,8 @@ class CategoryEmbedding extends Model
         'embedding' => 'array',
     ];
 
+    protected $table="category_embeddings";
+
     public function category()
     {
         return $this->belongsTo(Category::class);

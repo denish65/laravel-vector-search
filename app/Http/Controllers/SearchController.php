@@ -19,9 +19,6 @@ class SearchController extends Controller
             return  view('search');
         }
 
-
-
-        // Step 1: Generate vector for user query
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env("COHERE_KEY"),
             'Content-Type' => 'application/json',
@@ -37,16 +34,13 @@ class SearchController extends Controller
 
         $queryVector = $response['embeddings'][0];
 
-        // Step 2: Compare with stored embeddings
+        
         $embeddings = CategoryEmbedding::with('category')->get();
         $bestScore = -1;
         $bestMatch = null;
 
-        // echo "<PRe>"; print_r($embeddings);exit();
         foreach ($embeddings as $embedding) {
-        // echo "<PRe>"; print_r(json_decode($embedding->embedding));exit();
-        // var_dump($embedding->embedding);exit();
-    
+   
             $score = $this->cosineSimilarity($queryVector, $embedding->embedding);
             if ($score > $bestScore) {
                 $bestScore = $score;
@@ -54,7 +48,7 @@ class SearchController extends Controller
             }
         }
 
-        // Step 3: Return result
+       
         if ($bestScore > 0.45) {
            return view('search', [
             'result'=>true,

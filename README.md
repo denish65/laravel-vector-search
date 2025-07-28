@@ -3,7 +3,7 @@
 ## Setup Instructions
 
 1. Clone the repository:
-```bash
+
 git clone https://github.com/denish65/laravel-vector-search.git
 cd laravel-vector-search
 
@@ -15,6 +15,7 @@ php artisan key:generate
 
 php artisan migrate
 
+add your cohere ai COHERE_KEY key to env like this "COHERE_KEY=YOUr_COHERE_KEY"
 
 php artisan import:categories
 
